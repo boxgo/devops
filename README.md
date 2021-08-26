@@ -18,3 +18,11 @@
 4. 修改 `docker-compose.yml` 中的 IP 为部署环境 IP
 6. 使用 `docker-compose` 启动
 7. `Grafana` 导入 `Box Insight.json`
+
+# Demo
+
+## Dashboard
+![alerts](assets/box-insight.png)
+
+## 告警规则
+![alerts](assets/alerts.png)
