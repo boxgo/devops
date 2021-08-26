@@ -1,0 +1,59 @@
+version: "3.3"
+services:
+  prometheus:
+    image: prom/prometheus:v2.28.0
+    network_mode: host
+    ports:
+      - "9090:9090"
+    volumes:
+      - "prometheus-storage:/prometheus"
+      - "./prometheus:/etc/prometheus"
+    command:
+      - "--web.listen-address=:9090"
+      - "--web.external-url=http://10.2.130.145:9090"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--storage.tsdb.retention.size=10GB"
+      - "--config.file=/etc/prometheus/prometheus.yml"
+  pushgateway:
+    image: prom/pushgateway:v1.4.1
+    network_mode: host
+    ports:
+      - "9091:9091"
+    volumes:
+      - "pushgateway-storage:/pushgateway"
+      - "./pushgateway:/etc/pushgateway"
+    command:
+      - "--web.listen-address=:9091"
+      - "--web.external-url=http://10.2.130.145:9091"
+      - "--persistence.file=/pushgateway/metric.store"
+      - "--persistence.interval=5m"
+  alertmanager:
+    image: prom/alertmanager:v0.22.2
+    network_mode: host
+    ports:
+      - "9093:9093"
+    volumes:
+      - "alertmanager-storage:/data"
+      - "./alertmanager:/etc/alertmanager"
+    command:
+      - "--web.listen-address=:9093"
+      - "--web.external-url=http://10.2.130.145:9093"
+      - "--storage.path=/data"
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+  grafana:
+    image: grafana/grafana:8.0.3
+    network_mode: host
+    ports:
+      - "3000:3000"
+    volumes:
+      - "grafana-storage:/var/lib/grafana"
+      - "./grafana:/usr/share/grafana/conf"
+
+volumes:
+    prometheus-storage:
+    alertmanager-storage:
+    pushgateway-storage:
+    grafana-storage:
