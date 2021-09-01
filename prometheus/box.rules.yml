@@ -3,25 +3,65 @@ groups:
     rules:
       - alert: Goroutine 数量超过 500
         expr: go_goroutines > 500
-        for: 1m
+        for: 10s
+        labels:
+          severity: warning
         annotations:
-          summary: "持续1分钟运行的 Goroutine 数：{{ $value }}"
+          summary: "持续10s运行的 Goroutine 数：{{ $value }}"
+          description:
+      - alert: Goroutine 数量超过 2000
+        expr: go_goroutines > 2000
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "持续10s运行的 Goroutine 数：{{ $value }}"
           description:
       - alert: Gothread 数量超过 200
         expr: go_threads > 200
         for: 1m
+        labels:
+          severity: warning
         annotations:
-          summary: "持续1分钟运行的 Gothread 数：{{ $value }}"
+          summary: "持续10s运行的 Gothread 数：{{ $value }}"
+          description:
+      - alert: Gothread 数量超过 500
+        expr: go_threads > 500
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "持续10s运行的 Gothread 数：{{ $value }}"
           description:
       - alert: GoGC 延迟超过 10ms
         expr: go_gc_duration_seconds{quantile="1"} > 0.01
         for: 10s
+        labels:
+          severity: warning
+        annotations:
+          summary: "持续10秒 GC 耗时：{{ $value | humanizeDuration }}"
+          description:
+      - alert: GoGC 延迟超过 100ms
+        expr: go_gc_duration_seconds{quantile="1"} > 0.1
+        for: 10s
+        labels:
+          severity: critical
         annotations:
           summary: "持续10秒 GC 耗时：{{ $value | humanizeDuration }}"
           description:
       - alert: Go 内存使用超过 1GB
         expr: go_memstats_sys_bytes > 1024000000
         for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "持续1分钟使用内存：{{ $value | humanize1024 }}B"
+          description:
+      - alert: Go 内存使用超过 4GB
+        expr: go_memstats_sys_bytes > 4096000000
+        for: 1m
+        labels:
+          severity: critical
         annotations:
           summary: "持续1分钟使用内存：{{ $value | humanize1024 }}B"
           description:
@@ -31,24 +71,56 @@ groups:
       - alert: 服务并发超过 1000QPS
         expr: sum by (job) (irate(http_server_request_begin_total[1m])) > 1000
         for: 10s
+        labels:
+          severity: warning
         annotations:
           summary: "最近一分钟服务并发：{{ $value }}"
           description:
-      - alert: 服务状态码异常超过 2QPS
-        expr: irate(http_server_request_finish_total{status!="200"}[1m]) > 2
+      - alert: 服务状态码异常超过 0.1%
+        expr: sum(rate(http_server_request_finish_total{status!="200"}[1m])) / sum(rate(http_server_request_finish_total[1m])) * 100 > 0.1
         for: 10s
+        labels:
+          severity: warning
         annotations:
           summary: "最近1分钟状态码异常请求数：{{ $value }}"
           description: "{{ $labels.method }} {{ $labels.url }}，errcode：{{ $labels.errcode }}，status：{{ $labels.status }}"
-      - alert: 服务错误码异常超过 2QPS
-        expr: irate(http_server_request_finish_total{errcode!="0"}[1m]) > 2
+      - alert: 服务状态码异常超过 1%
+        expr: sum(rate(http_server_request_finish_total{status!="200"}[1m])) / sum(rate(http_server_request_finish_total[1m])) * 100 > 1
         for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: "最近1分钟状态码异常请求数：{{ $value }}"
+          description: "{{ $labels.method }} {{ $labels.url }}，errcode：{{ $labels.errcode }}，status：{{ $labels.status }}"
+      - alert: 服务错误码异常超过 0.1%
+        expr: sum(rate(http_server_request_finish_total{errcode!="0"}[1m])) / sum(rate(http_server_request_finish_total[1m])) * 100 > 0.1
+        for: 10s
+        labels:
+          severity: warning
         annotations:
           summary: "最近1分钟错误码异常请求数：{{ $value }}"
+          description: "{{ $labels.method }} {{ $labels.url }}，errcode：{{ $labels.errcode }}，status：{{ $labels.status }}"
+      - alert: 服务错误码异常超过 1%
+        expr: sum(rate(http_server_request_finish_total{errcode!="0"}[1m])) / sum(rate(http_server_request_finish_total[1m])) * 100 > 1
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: "最近1分钟错误码异常请求数：{{ $value }}"
+          description: "{{ $labels.method }} {{ $labels.url }}，errcode：{{ $labels.errcode }}，status：{{ $labels.status }}"
+      - alert: 服务P99耗时超过 500ms
+        expr: http_server_request_duration_seconds{quantile="0.99"} > 0.5
+        for: 10s
+        labels:
+          severity: warning
+        annotations:
+          summary: "P99耗时：{{ $value | humanizeDuration }}秒"
           description: "{{ $labels.method }} {{ $labels.url }}，errcode：{{ $labels.errcode }}，status：{{ $labels.status }}"
       - alert: 服务P99耗时超过 5s
         expr: http_server_request_duration_seconds{quantile="0.99"} > 5
         for: 10s
+        labels:
+          severity: critical
         annotations:
           summary: "P99耗时：{{ $value | humanizeDuration }}秒"
           description: "{{ $labels.method }} {{ $labels.url }}，errcode：{{ $labels.errcode }}，status：{{ $labels.status }}"
@@ -58,24 +130,45 @@ groups:
       - alert: 外部请求并发超过 20QPS
         expr: http_client_request_in_process > 20
         for: 10s
+        labels:
+          severity: warning
         annotations:
           summary: "外部请求数：{{ $value }}"
           description: "{{ $labels.method }} {{ $labels.url }}"
       - alert: 外部请求P99耗时超过 10s
         expr: http_client_request_seconds{quantile="0.99"} > 10
         for: 10s
+        labels:
+          severity: critical
         annotations:
           summary: "当前外部请求耗时超过{{ $value | humanizeDuration }}秒"
           description: "{{ $labels.method }} {{ $labels.url }}，status：{{ $labels.statusCode }}"
-      - alert: 外部请求状态码异常超过 2QPS
-        expr: irate(http_client_request_total{statusCode!="200"}[1m]) > 2
+      - alert: 外部请求状态码异常超过 0.1%
+        expr: sum(rate(http_client_request_total{statusCode!="200"}[1m])) / sum(rate(http_client_request_total[1m])) * 100 > 0.1
         for: 10s
+        labels:
+          severity: warning
+      - alert: 外部请求状态码异常超过 1%
+        expr: sum(rate(http_client_request_total{statusCode!="200"}[1m])) / sum(rate(http_client_request_total[1m])) * 100 > 1
+        for: 10s
+        labels:
+          severity: critical
         annotations:
           summary: "最近1分钟外部状态码异常请求数：{{ $value }}"
           description: "{{ $labels.method }} {{ $labels.url }}，status：{{ $labels.statusCode }}"
-      - alert: 外部请求错误超过 2QPS
-        expr: irate(http_client_request_total{error!=""}[1m]) > 2
+      - alert: 外部请求错误超过 0.1%
+        expr: sum(rate(http_client_request_total{error!=""}[1m])) / sum(rate(http_client_request_total[1m])) * 100 > 0.1
         for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: "最近1分钟外部状态码异常请求数：{{ $value }}"
+          description: "{{ $labels.method }} {{ $labels.url }}，status：{{ $labels.statusCode }}"
+      - alert: 外部请求错误超过 1%
+        expr: sum(rate(http_client_request_total{error!=""}[1m])) / sum(rate(http_client_request_total[1m])) * 100 > 1
+        for: 10s
+        labels:
+          severity: critical
         annotations:
           summary: "最近1分钟外部状态码异常请求数：{{ $value }}"
           description: "{{ $labels.method }} {{ $labels.url }}，error：{{ $labels.error }}"
@@ -85,6 +178,8 @@ groups:
       - alert: 定时任务执行失败
         expr: increase(schedule_total{error!=""}[1m]) > 0
         for: 10s
+        labels:
+          severity: critical
         annotations:
           summary: "最近一分钟执行失败次数：{{ $value }}"
           description: "{{ $labels.error }}"
@@ -100,6 +195,8 @@ groups:
       - alert: Redis执行命令失败
         expr: increase(redis_client_command_total{error!=""}[1m]) > 5
         for: 10s
+        labels:
+          severity: critical
         annotations:
           summary: "最近一分钟执行失败次数：{{ $value }}"
           description: "{{ $labels.error }}"
