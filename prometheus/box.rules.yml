@@ -11,7 +11,7 @@ groups:
           description:
       - alert: Goroutine 数量超过 2000
         expr: go_goroutines > 2000
-        for: 1m
+        for: 10s
         labels:
           severity: critical
         annotations:
@@ -19,7 +19,7 @@ groups:
           description:
       - alert: Gothread 数量超过 200
         expr: go_threads > 200
-        for: 1m
+        for: 10s
         labels:
           severity: warning
         annotations:
@@ -27,7 +27,7 @@ groups:
           description:
       - alert: Gothread 数量超过 500
         expr: go_threads > 500
-        for: 1m
+        for: 10s
         labels:
           severity: critical
         annotations:
@@ -77,53 +77,53 @@ groups:
           summary: "最近一分钟服务并发：{{ $value }}"
           description:
       - alert: 服务状态码异常超过 0.1%
-        expr: sum(rate(http_server_request_finish_total{status!="200"}[1m])) / sum(rate(http_server_request_finish_total[1m])) * 100 > 0.1
+        expr: ((sum by(job,instance,method,status,url) (irate(http_server_request_finish_total{status!="200"}[1m]))) / (sum by(job,instance,method,status,url) (irate(http_server_request_finish_total[1m])))) * 100 > 0.1
         for: 10s
         labels:
           severity: warning
         annotations:
-          summary: "最近1分钟状态码异常请求数：{{ $value }}"
-          description: "{{ $labels.method }} {{ $labels.url }}，errcode：{{ $labels.errcode }}，status：{{ $labels.status }}"
+          summary: "最近1分钟状态码异常比例：{{ $value }}%"
+          description: "{{ $labels.method }} {{ $labels.url }} status：{{ $labels.status }}"
       - alert: 服务状态码异常超过 1%
-        expr: sum(rate(http_server_request_finish_total{status!="200"}[1m])) / sum(rate(http_server_request_finish_total[1m])) * 100 > 1
-        for: 10s
+        expr: ((sum by(job,instance,method,status,url) (irate(http_server_request_finish_total{status!="200"}[1m]))) / (sum by(job,instance,method,status,url) (irate(http_server_request_finish_total[1m])))) * 100 > 1
+        for: 0s
         labels:
           severity: critical
         annotations:
-          summary: "最近1分钟状态码异常请求数：{{ $value }}"
-          description: "{{ $labels.method }} {{ $labels.url }}，errcode：{{ $labels.errcode }}，status：{{ $labels.status }}"
+          summary: "最近1分钟状态码异常比例：{{ $value }}%"
+          description: "{{ $labels.method }} {{ $labels.url }} status：{{ $labels.status }}"
       - alert: 服务错误码异常超过 0.1%
-        expr: sum(rate(http_server_request_finish_total{errcode!="0"}[1m])) / sum(rate(http_server_request_finish_total[1m])) * 100 > 0.1
+        expr: ((sum by(job,instance,method,errcode,url) (irate(http_server_request_finish_total{errcode!="0"}[1m]))) / (sum by(job,instance,method,errcode,url) (irate(http_server_request_finish_total[1m])))) * 100 > 0.1
         for: 10s
         labels:
           severity: warning
         annotations:
-          summary: "最近1分钟错误码异常请求数：{{ $value }}"
-          description: "{{ $labels.method }} {{ $labels.url }}，errcode：{{ $labels.errcode }}，status：{{ $labels.status }}"
+          summary: "最近1分钟错误码异常比例：{{ $value }}%"
+          description: "{{ $labels.method }} {{ $labels.url }} errcode：{{ $labels.errcode }}"
       - alert: 服务错误码异常超过 1%
-        expr: sum(rate(http_server_request_finish_total{errcode!="0"}[1m])) / sum(rate(http_server_request_finish_total[1m])) * 100 > 1
-        for: 10s
+        expr: ((sum by(job,instance,method,errcode,url) (irate(http_server_request_finish_total{errcode!="0"}[1m]))) / (sum by(job,instance,method,errcode,url) (irate(http_server_request_finish_total[1m])))) * 100 > 1
+        for: 0s
         labels:
           severity: critical
         annotations:
-          summary: "最近1分钟错误码异常请求数：{{ $value }}"
-          description: "{{ $labels.method }} {{ $labels.url }}，errcode：{{ $labels.errcode }}，status：{{ $labels.status }}"
+          summary: "最近1分钟错误码异常比例：{{ $value }}%"
+          description: "{{ $labels.method }} {{ $labels.url }} errcode：{{ $labels.errcode }}"
       - alert: 服务P99耗时超过 500ms
         expr: http_server_request_duration_seconds{quantile="0.99"} > 0.5
         for: 10s
         labels:
           severity: warning
         annotations:
-          summary: "P99耗时：{{ $value | humanizeDuration }}秒"
-          description: "{{ $labels.method }} {{ $labels.url }}，errcode：{{ $labels.errcode }}，status：{{ $labels.status }}"
+          summary: "P99耗时：{{ $value | humanizeDuration }}"
+          description: "{{ $labels.method }} {{ $labels.url }} errcode：{{ $labels.errcode }} status：{{ $labels.status }}"
       - alert: 服务P99耗时超过 5s
         expr: http_server_request_duration_seconds{quantile="0.99"} > 5
-        for: 10s
+        for: 0s
         labels:
           severity: critical
         annotations:
-          summary: "P99耗时：{{ $value | humanizeDuration }}秒"
-          description: "{{ $labels.method }} {{ $labels.url }}，errcode：{{ $labels.errcode }}，status：{{ $labels.status }}"
+          summary: "P99耗时：{{ $value | humanizeDuration }}"
+          description: "{{ $labels.method }} {{ $labels.url }} errcode：{{ $labels.errcode }} status：{{ $labels.status }}"
 
   - name: HTTP Client Alerts
     rules:
@@ -133,51 +133,54 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "外部请求数：{{ $value }}"
+          summary: "并发数：{{ $value }}"
           description: "{{ $labels.method }} {{ $labels.url }}"
       - alert: 外部请求P99耗时超过 10s
         expr: http_client_request_seconds{quantile="0.99"} > 10
-        for: 10s
+        for: 0s
         labels:
           severity: critical
         annotations:
-          summary: "当前外部请求耗时超过{{ $value | humanizeDuration }}秒"
-          description: "{{ $labels.method }} {{ $labels.url }}，status：{{ $labels.statusCode }}"
+          summary: "当前耗时超过{{ $value | humanizeDuration }}"
+          description: "{{ $labels.method }} {{ $labels.statusCode }} {{$labels.baseUrl}}{{ $labels.url }}"
       - alert: 外部请求状态码异常超过 0.1%
-        expr: sum(rate(http_client_request_total{statusCode!="200"}[1m])) / sum(rate(http_client_request_total[1m])) * 100 > 0.1
+        expr: ((sum by(job,instance,method,baseUrl,url,statusCode) (irate(http_client_request_total{statusCode!="200"}[1m]))) / (sum by(job,instance,method,baseUrl,url,statusCode) (irate(http_client_request_total[1m])))) * 100 > 0.1
         for: 10s
         labels:
           severity: warning
+        annotations:
+          summary: "最近1分钟状态码异常比例：{{ $value }}%"
+          description: "{{ $labels.method }} {{ $labels.statusCode }} {{$labels.baseUrl}}{{ $labels.url }}"
       - alert: 外部请求状态码异常超过 1%
-        expr: sum(rate(http_client_request_total{statusCode!="200"}[1m])) / sum(rate(http_client_request_total[1m])) * 100 > 1
-        for: 10s
+        expr: ((sum by(job,instance,method,baseUrl,url,statusCode) (irate(http_client_request_total{statusCode!="200"}[1m]))) / (sum by(job,instance,method,baseUrl,url,statusCode) (irate(http_client_request_total[1m])))) * 100 > 1
+        for: 0s
         labels:
           severity: critical
         annotations:
-          summary: "最近1分钟外部状态码异常请求数：{{ $value }}"
-          description: "{{ $labels.method }} {{ $labels.url }}，status：{{ $labels.statusCode }}"
+          summary: "最近1分钟状态码异常比例：{{ $value }}%"
+          description: "{{ $labels.method }} {{ $labels.statusCode }} {{$labels.baseUrl}}{{ $labels.url }}"
       - alert: 外部请求错误超过 0.1%
-        expr: sum(rate(http_client_request_total{error!=""}[1m])) / sum(rate(http_client_request_total[1m])) * 100 > 0.1
+        expr: ((sum by(job,instance,method,baseUrl,url,statusCode) (irate(http_client_request_total{error!=""}[1m]))) / (sum by(job,instance,method,baseUrl,url,statusCode) (irate(http_client_request_total[1m])))) * 100 > 0.1
         for: 10s
         labels:
           severity: critical
         annotations:
-          summary: "最近1分钟外部状态码异常请求数：{{ $value }}"
-          description: "{{ $labels.method }} {{ $labels.url }}，status：{{ $labels.statusCode }}"
+          summary: "最近1分钟错误比例：{{ $value }}%"
+          description: "{{ $labels.method }} {{ $labels.error }} {{$labels.baseUrl}}{{ $labels.url }}"
       - alert: 外部请求错误超过 1%
-        expr: sum(rate(http_client_request_total{error!=""}[1m])) / sum(rate(http_client_request_total[1m])) * 100 > 1
-        for: 10s
+        expr: ((sum by(job,instance,method,baseUrl,url,statusCode) (irate(http_client_request_total{error!=""}[1m]))) / (sum by(job,instance,method,baseUrl,url,statusCode) (irate(http_client_request_total[1m])))) * 100 > 1
+        for: 0s
         labels:
           severity: critical
         annotations:
-          summary: "最近1分钟外部状态码异常请求数：{{ $value }}"
-          description: "{{ $labels.method }} {{ $labels.url }}，error：{{ $labels.error }}"
+          summary: "最近1分钟错误比例：{{ $value }}%"
+          description: "{{ $labels.method }} {{ $labels.error }} {{$labels.baseUrl}}{{ $labels.url }}"
 
   - name: Schedule Alerts
     rules:
       - alert: 定时任务执行失败
         expr: increase(schedule_total{error!=""}[1m]) > 0
-        for: 10s
+        for: 0s
         labels:
           severity: critical
         annotations:
@@ -185,7 +188,7 @@ groups:
           description: "{{ $labels.error }}"
       - alert: 定时任务执行异常
         expr: increase(schedule_total{panic!=""}[1m]) > 0
-        for: 10s
+        for: 0s
         annotations:
           summary: "最近一分钟执行异常次数：{{ $value }}"
           description: "{{ $labels.panic }}"
