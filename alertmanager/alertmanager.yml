@@ -1,5 +1,5 @@
 route:
-  group_by: ['alertname', 'job']
+  group_by: ['alertname', 'job', 'status']
   group_wait: 30s
   group_interval: 1m
   repeat_interval: 1h
@@ -9,10 +9,3 @@ receivers:
   - name: 'web.hook'
     webhook_configs:
       - url: 'http://10.51.136.65:32025/api/wechat/devops/1.0.0/alert/prom'
-
-inhibit_rules:
-  - source_match:
-      severity: 'critical'
-    target_match:
-      severity: 'warning'
-    equal: ['alertname', 'job', 'status']
